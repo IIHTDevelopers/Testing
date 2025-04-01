@@ -1,0 +1,281 @@
+package rest;
+
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import io.restassured.RestAssured;
+import io.restassured.response.Response;
+import io.restassured.specification.RequestSpecification;
+
+public class ApiUtil {
+
+	private static final String BASE_URL = "https://healthapp.yaksha.com/api";
+
+	/**
+	 * @Test1 This method retrieves and verifies the list of stocks.
+	 * 
+	 * @param endpoint - The API endpoint to which the GET request is sent.
+	 * @param body     - Optional
+	 * @return CustomResponse - The API response includes HTTP status code, status
+	 *         message, and a list of stocks in the "Results" field, containing
+	 *         details such as ItemID, ItemName, SalePrice, and CostPrice.
+	 */
+	public CustomResponse getAllStocks(String endpoint, Object body) {
+		RequestSpecification request = RestAssured.given().header("Authorization", AuthUtil.getAuthHeader())
+				.header("Content-Type", "application/json");
+
+		// Add body if it's not null
+		if (body != null) {
+			request.body(body);
+		}
+
+		Response response = request.get(BASE_URL + endpoint).then().extract().response();
+
+		// Extracting required data
+		int statusCode = response.statusCode();
+		String status = response.jsonPath().getString("Status");
+
+		// Directly extracting the lists of ItemId, ItemName, and GenericName
+		List<Object> itemIds = response.jsonPath().getList("Results.ItemId");
+		List<Object> itemNames = response.jsonPath().getList("Results.ItemName");
+		List<Object> genericNames = response.jsonPath().getList("Results.GenericName");
+
+		// Return a CustomResponse object
+		return new CustomResponse(response, statusCode, status, itemIds, itemNames, genericNames);
+	}
+
+	/**
+	 * @Test2 This method retrieves and verifies the details of the main store.
+	 * 
+	 * @param endpoint - The API endpoint to which the GET request is sent.
+	 * @param body     - Optional
+	 * @return CustomResponse - The API response includes the HTTP status code,
+	 *         status message, and details of the main store in the "Results" field,
+	 *         containing details such as StoreId, ParentStoreId, Category, and
+	 *         IsActive.
+	 */
+	public CustomResponse getMainStore(String endpoint, Object body) {
+		RequestSpecification request = RestAssured.given().header("Authorization", AuthUtil.getAuthHeader())
+				.header("Content-Type", "application/json");
+
+		if (body != null) {
+			request.body(body);
+		}
+
+		Response response = request.get(BASE_URL + endpoint).then().extract().response();
+
+		int statusCode = response.statusCode();
+		String status = response.jsonPath().getString("Status");
+
+		// Directly extracting the individual fields from "Results"
+		Object storeId = response.jsonPath().get("Results.StoreId");
+		Object category = response.jsonPath().get("Results.Category");
+		Object isActive = response.jsonPath().get("Results.IsActive");
+
+		return new CustomResponse(response, statusCode, status, storeId, category, isActive);
+	}
+
+	/**
+	 * @Test3 This method retrieves and verifies the requisition list by date range.
+	 * 
+	 * @param endpoint - The API endpoint to which the GET request is sent.
+	 * @param body     - Optional
+	 * @return CustomResponse - The API response includes the HTTP status code,
+	 *         status message, and requisition list in the "Results" field,
+	 *         containing details such as RequisitionId, RequisitionNo, and
+	 *         RequisitionStatus.
+	 */
+	public CustomResponse getRequisitionByDateRange(String endpoint, Object body) {
+		RequestSpecification request = RestAssured.given().header("Authorization", AuthUtil.getAuthHeader())
+				.header("Content-Type", "application/json");
+
+		if (body != null) {
+			request.body(body);
+		}
+
+		Response response = request.get(BASE_URL + endpoint).then().extract().response();
+
+		int statusCode = response.statusCode();
+		String status = response.jsonPath().getString("Status");
+
+		List<Map<String, Object>> requisitionList = response.jsonPath().getList("Results.requisitionList");
+		List<Object> requisitionNos = requisitionList.stream().map(req -> req.get("RequistionNo"))
+				.collect(Collectors.toList());
+		List<Object> requisitionStatuses = requisitionList.stream().map(req -> req.get("RequisitionStatus"))
+				.collect(Collectors.toList());
+		List<Object> requisitionIds = requisitionList.stream().map(req -> req.get("RequisitionId"))
+				.collect(Collectors.toList());
+
+		return new CustomResponse(response, statusCode, status, requisitionNos, requisitionStatuses, requisitionIds);
+	}
+
+	/**
+	 * @Test4 This method retrieves and verifies the patient consumptions list.
+	 * 
+	 * @param endpoint - The API endpoint to which the GET request is sent.
+	 * @param body     - Optional
+	 * @return CustomResponse - The API response includes the HTTP status code,
+	 *         status message, and the patient consumptions list in the "Results"
+	 *         field, containing details such as PatientId, HospitalNo, and
+	 *         PatientVisitId.
+	 */
+	public CustomResponse getPatientConsumptions(String endpoint, Object body) {
+		RequestSpecification request = RestAssured.given().header("Authorization", AuthUtil.getAuthHeader())
+				.header("Content-Type", "application/json");
+
+		if (body != null) {
+			request.body(body);
+		}
+
+		Response response = request.get(BASE_URL + endpoint).then().extract().response();
+
+		int statusCode = response.statusCode();
+		String status = response.jsonPath().getString("Status");
+
+		// Directly extracting the fields PatientId, HospitalNo, and PatientVisitId
+		List<Map<String, Object>> results = response.jsonPath().getList("Results");
+
+		List<Object> patientIds = results.stream().map(patient -> patient.get("PatientId"))
+				.collect(Collectors.toList());
+		List<Object> hospitalNos = results.stream().map(patient -> patient.get("HospitalNo"))
+				.collect(Collectors.toList());
+		List<Object> patientVisitIds = results.stream().map(patient -> patient.get("PatientVisitId"))
+				.collect(Collectors.toList());
+
+		return new CustomResponse(response, statusCode, status, patientIds, hospitalNos, patientVisitIds);
+	}
+
+	/**
+	 * @Test5 This method retrieves and verifies the patient consumption
+	 *        information.
+	 * 
+	 * @param endpoint - The API endpoint to which the GET request is sent.
+	 * @param body     - Optional
+	 * @return CustomResponse - The API response includes the HTTP status code,
+	 *         status message, and the patient consumption information in the
+	 *         "Results" field, containing details such as PatientName, HospitalNo,
+	 *         and StoreId.
+	 */
+	public CustomResponse getPatientConsumptionInfoByPatientIdAndVisitId(String endpoint, Object body) {
+		RequestSpecification request = RestAssured.given().header("Authorization", AuthUtil.getAuthHeader())
+				.header("Content-Type", "application/json");
+
+		if (body != null) {
+			request.body(body);
+		}
+
+		Response response = request.get(BASE_URL + endpoint).then().extract().response();
+
+		int statusCode = response.statusCode();
+		String status = response.jsonPath().getString("Status");
+
+		// Extract PatientName, HospitalNo, and StoreId from the response
+		Map<String, Object> results = response.jsonPath().getMap("Results");
+		Map<String, Object> patientConsumption = (Map<String, Object>) results.get("PatientConsumption");
+
+		Object patientName = patientConsumption.get("PatientName");
+		Object hospitalNo = patientConsumption.get("HospitalNo");
+		Object storeId = patientConsumption.get("StoreId");
+
+		return new CustomResponse(response, statusCode, status, patientName, hospitalNo, storeId);
+	}
+
+	/**
+	 * @Test6 This method retrieves and verifies the billing scheme by scheme ID.
+	 * 
+	 * @param endpoint - The API endpoint to which the GET request is sent.
+	 * @param body     - Optional
+	 * @return CustomResponse - Contains HTTP status, status message, and Results
+	 *         field, including SchemeCode, SchemeName, and SchemeId.
+	 */
+	public CustomResponse getBillingSchemeBySchemeId(String endpoint, Object body) {
+		RequestSpecification request = RestAssured.given().header("Authorization", AuthUtil.getAuthHeader())
+				.header("Content-Type", "application/json");
+
+		if (body != null) {
+			request.body(body);
+		}
+
+		Response response = request.get(BASE_URL + endpoint).then().extract().response();
+
+		int statusCode = response.statusCode();
+		String status = response.jsonPath().getString("Status");
+
+		// Directly extracting the fields SchemeCode, SchemeName, and SchemeId
+		Map<String, Object> results = response.jsonPath().getMap("Results");
+
+		Object schemeCode = results.get("SchemeCode");
+		Object schemeName = results.get("SchemeName");
+		Object schemeId = results.get("SchemeId");
+
+		return new CustomResponse(response, statusCode, status, schemeCode, schemeName, schemeId);
+	}
+
+	/**
+	 * @Test7 This method retrieves and verifies the billing summary by patient ID.
+	 * 
+	 * @param endpoint - The API endpoint to which the GET request is sent.
+	 * @param body     - Optional
+	 * @return CustomResponse - Contains HTTP status, status message, and Results
+	 *         field, including PatientId, TotalDue, and other billing details.
+	 */
+	public CustomResponse getBillingSummaryByPatientId(String endpoint, Object body) {
+		RequestSpecification request = RestAssured.given().header("Authorization", AuthUtil.getAuthHeader())
+				.header("Content-Type", "application/json");
+
+		if (body != null) {
+			request.body(body);
+		}
+
+		Response response = request.get(BASE_URL + endpoint).then().extract().response();
+
+		int statusCode = response.statusCode();
+		String status = response.jsonPath().getString("Status");
+
+		// Extracting the fields PatientId, TotalDue, and others from Results
+		Map<String, Object> results = response.jsonPath().getMap("Results");
+		Object patientId = results.get("PatientId");
+		Object totalDue = results.get("TotalDue");
+
+		return new CustomResponse(response, statusCode, status, patientId, totalDue);
+	}
+
+	/**
+	 * @Test8 This method retrieves and verifies the consumptions list of a patient
+	 *        by ID.
+	 * 
+	 * @param endpoint - The API endpoint to which the GET request is sent.
+	 * @param body     - Optional
+	 * @return CustomResponse - Contains HTTP status, status message, and Results
+	 *         field, including PatientConsumptionId, ConsumptionReceiptNo, and
+	 *         TotalAmount.
+	 */
+	public CustomResponse getConsumptionsListOfAPatientById(String endpoint, Object body) {
+		RequestSpecification request = RestAssured.given().header("Authorization", AuthUtil.getAuthHeader())
+				.header("Content-Type", "application/json");
+
+		if (body != null) {
+			request.body(body);
+		}
+
+		Response response = request.get(BASE_URL + endpoint).then().extract().response();
+
+		int statusCode = response.statusCode();
+		String status = response.jsonPath().getString("Status");
+
+		// Extracting the fields PatientConsumptionId, ConsumptionReceiptNo, and
+		// TotalAmount
+		List<Map<String, Object>> results = null;
+
+		List<Object> patientConsumptionIds = results.stream().map(result -> result.get("PatientConsumptionId"))
+				.collect(Collectors.toList());
+		List<Object> consumptionReceiptNos = results.stream().map(result -> result.get("ConsumptionReceiptNo"))
+				.collect(Collectors.toList());
+		List<Object> totalAmounts = results.stream().map(result -> result.get("TotalAmount"))
+				.collect(Collectors.toList());
+
+		return new CustomResponse(response, statusCode, status, patientConsumptionIds, consumptionReceiptNos,
+				totalAmounts);
+	}
+}
